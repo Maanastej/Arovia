@@ -49,8 +49,14 @@ CREATE TRIGGER update_profiles_updated_at
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- Create profile
   INSERT INTO public.profiles (user_id, full_name)
   VALUES (NEW.id, NEW.raw_user_meta_data ->> 'full_name');
+  
+  -- Send welcome message
+  INSERT INTO public.messages (sender_id, receiver_id, content)
+  VALUES (NEW.id, NEW.id, 'Welcome to Arovia Care Connect! 👋 I am your dedicated care coordinator. Please upload your medical history in the "Records" tab so we can begin reviewing your case.');
+  
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;

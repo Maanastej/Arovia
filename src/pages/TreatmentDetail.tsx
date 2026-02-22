@@ -45,24 +45,43 @@ const TreatmentDetail = () => {
         setLoading(false);
     };
 
-    const handleBookNow = () => {
+    const handleBookNow = async () => {
         // If not logged in, redirect to auth
-        supabase.auth.getSession().then(({ data: { session } }) => {
-            if (!session) {
-                toast({
-                    title: "Session Required",
-                    description: "Please sign in to book a consultation."
-                });
-                navigate("/auth");
-            } else {
-                // I will implement the actual booking modal later or redirect to dashboard with context
-                toast({
-                    title: "Booking Initiated",
-                    description: "Redirecting you to complete your booking consultation."
-                });
-                navigate("/dashboard");
-            }
-        });
+        const { data: { session } } = await supabase.auth.getSession();
+
+        if (!session) {
+            toast({
+                title: "Session Required",
+                description: "Please sign in to book a consultation."
+            });
+            navigate("/auth");
+            return;
+        }
+
+        try {
+            const { error } = await supabase.from("appointments").insert({
+                user_id: session.user.id,
+                treatment_id: id,
+                status: "pending",
+                scheduled_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(), // Dummy date 7 days from now
+                notes: `Interest in ${treatment.title}`
+            });
+
+            if (error) throw error;
+
+            toast({
+                title: "Booking Requested",
+                description: "Your consultation request has been sent to our care team."
+            });
+            navigate("/dashboard");
+        } catch (err) {
+            console.error("Booking error:", err);
+            toast({
+                variant: "destructive",
+                title: "Booking Failed",
+                description: "Failed to create your appointment. Please try again."
+            });
+        }
     };
 
     if (loading) {

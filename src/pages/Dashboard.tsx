@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { ArrowLeft, ArrowRight } from "lucide-react";
 
 const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
@@ -108,6 +109,30 @@ const Dashboard = () => {
     }
   };
 
+  const handleFileUpload = async () => {
+    if (!user) return;
+
+    // Simulate file upload for demo purposes
+    const recordTitle = prompt("Enter a title for your medical record:", "Previous Dental X-Ray.pdf");
+    if (!recordTitle) return;
+
+    setLoading(true);
+    const { error } = await supabase.from("medical_records").insert({
+      user_id: user.id,
+      title: recordTitle,
+      file_url: "https://example.com/demo-file.pdf",
+      file_type: "PDF"
+    });
+
+    if (error) {
+      toast({ variant: "destructive", title: "Upload Failed", description: error.message });
+    } else {
+      toast({ title: "Success", description: "Medical record uploaded successfully." });
+      fetchDashboardData(user.id);
+    }
+    setLoading(false);
+  };
+
   const renderOverview = () => (
     <div className="space-y-10">
       {/* Welcome */}
@@ -119,6 +144,38 @@ const Dashboard = () => {
           Track your medical journey and manage your care team.
         </p>
       </motion.div>
+
+      {/* Action Required Section */}
+      {(records.length === 0 || appointments.length === 0) && (
+        <Card className="border-accent/20 bg-accent/5">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Bell className="w-5 h-5 text-accent" /> Action Items
+            </CardTitle>
+            <CardDescription>Complete these steps to speed up your medical consultation.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {records.length === 0 && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-background border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent">1</div>
+                  <span className="text-sm font-medium">Upload your recent medical history</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => setActiveTab('records')}>Start <ArrowRight className="ml-1 w-3 h-3" /></Button>
+              </div>
+            )}
+            {appointments.length === 0 && (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-background border border-border">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">2</div>
+                  <span className="text-sm font-medium">Browse treatments and book a consult</span>
+                </div>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/treatments')}>Browse <ArrowRight className="ml-1 w-3 h-3" /></Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Stats */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -243,7 +300,7 @@ const Dashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-2xl font-bold">Medical Records</h2>
-        <Button variant="outline" className="gap-2">
+        <Button variant="outline" className="gap-2" onClick={handleFileUpload}>
           <Upload className="w-4 h-4" /> Upload Document
         </Button>
       </div>
