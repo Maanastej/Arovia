@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Phone } from "lucide-react";
+import { Menu, X, Phone, User, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 
 const navLinks = [
   { label: "Treatments", href: "/treatments" },
@@ -12,6 +14,19 @@ const navLinks = [
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [session, setSession] = useState<any>(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
@@ -38,12 +53,24 @@ const Navbar = () => {
             <Phone className="w-4 h-4" />
             <span>1-800-AROVIA</span>
           </Button>
-          <a href="/auth">
-            <Button variant="outline" size="sm">Sign In</Button>
-          </a>
-          <a href="/auth">
-            <Button size="sm">Get Free Quote</Button>
-          </a>
+
+          {session ? (
+            <Link to="/dashboard">
+              <Button size="sm" className="gap-2">
+                <LayoutDashboard className="w-4 h-4" />
+                Dashboard
+              </Button>
+            </Link>
+          ) : (
+            <>
+              <a href="/auth">
+                <Button variant="outline" size="sm">Sign In</Button>
+              </a>
+              <a href="/auth">
+                <Button size="sm">Get Free Quote</Button>
+              </a>
+            </>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -72,7 +99,18 @@ const Navbar = () => {
                   {link.label}
                 </a>
               ))}
-              <Button className="w-full mt-2">Get Free Quote</Button>
+              {session ? (
+                <Link to="/dashboard" onClick={() => setOpen(false)}>
+                  <Button className="w-full mt-2 gap-2">
+                    <LayoutDashboard className="w-4 h-4" />
+                    Go to Dashboard
+                  </Button>
+                </Link>
+              ) : (
+                <a href="/auth" onClick={() => setOpen(false)}>
+                  <Button className="w-full mt-2">Get Free Quote</Button>
+                </a>
+              )}
             </div>
           </motion.div>
         )}
