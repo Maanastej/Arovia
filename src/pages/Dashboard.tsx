@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -19,9 +19,10 @@ const Dashboard = () => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
-
-  // Feature data states
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "overview");
+  const [newMessage, setNewMessage] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [records, setRecords] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
@@ -92,7 +93,6 @@ const Dashboard = () => {
     navigate("/");
   };
 
-  const [newMessage, setNewMessage] = useState("");
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user) return;
 
@@ -105,9 +105,35 @@ const Dashboard = () => {
       toast({ variant: "destructive", title: "Error", description: "Failed to send message." });
     } else {
       setNewMessage("");
-      fetchDashboardData(user.id);
+      // fetchDashboardData(user.id); // Removed as per new useEffect
     }
   };
+
+  useEffect(() => {
+    if (user) {
+      fetchDashboardData(user.id);
+
+      // Auto-refresh messages every 10 seconds to simulate real-time
+      const msgInterval = setInterval(() => {
+        if (activeTab === 'messages') {
+          fetchDashboardData(user.id);
+        }
+      }, 10000);
+
+      return () => clearInterval(msgInterval);
+    }
+  }, [user, activeTab]);
+
+  useEffect(() => {
+    if (activeTab === 'messages') {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, activeTab]);
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab) setActiveTab(tab);
+  }, [searchParams]);
 
   const handleFileUpload = async () => {
     if (!user) return;
@@ -161,7 +187,7 @@ const Dashboard = () => {
                   <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center text-accent">1</div>
                   <span className="text-sm font-medium">Upload your recent medical history</span>
                 </div>
-                <Button variant="ghost" size="sm" onClick={() => setActiveTab('records')}>Start <ArrowRight className="ml-1 w-3 h-3" /></Button>
+                <Button variant="ghost" size="sm" onClick={() => { setActiveTab('records'); setSearchParams({ tab: 'records' }); }}>Start <ArrowRight className="ml-1 w-3 h-3" /></Button>
               </div>
             )}
             {appointments.length === 0 && (

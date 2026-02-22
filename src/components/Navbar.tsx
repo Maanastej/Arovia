@@ -55,12 +55,19 @@ const Navbar = () => {
           </Button>
 
           {session ? (
-            <Link to="/dashboard">
-              <Button size="sm" className="gap-2">
-                <LayoutDashboard className="w-4 h-4" />
-                Dashboard
-              </Button>
-            </Link>
+            <div className="flex items-center gap-2">
+              <Link to="/dashboard?tab=messages">
+                <Button variant="outline" size="sm" className="gap-2">
+                  Chat with Us
+                </Button>
+              </Link>
+              <Link to="/dashboard">
+                <Button size="sm" className="gap-2">
+                  <LayoutDashboard className="w-4 h-4" />
+                  Dashboard
+                </Button>
+              </Link>
+            </div>
           ) : (
             <>
               <a href="/auth">

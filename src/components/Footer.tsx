@@ -25,7 +25,7 @@ const Footer = () => (
             <li><a href="#" className="hover:text-primary-foreground transition-colors">About Us</a></li>
             <li><a href="#" className="hover:text-primary-foreground transition-colors">Partner Hospitals</a></li>
             <li><a href="#" className="hover:text-primary-foreground transition-colors">Patient Stories</a></li>
-            <li><a href="#" className="hover:text-primary-foreground transition-colors">Contact</a></li>
+            <li><a href="/dashboard?tab=messages" className="hover:text-primary-foreground transition-colors">Contact / Chat</a></li>
           </ul>
         </div>
         <div>
