@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Phone, User, LayoutDashboard } from "lucide-react";
+import { Menu, X, Phone, User, LayoutDashboard, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { type Session } from "@supabase/supabase-js";
 
 const navLinks = [
   { label: "Treatments", href: "/treatments" },
@@ -15,18 +16,39 @@ const navLinks = [
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [session, setSession] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
+      if (session?.user) {
+        checkAdmin(session.user.id);
+      } else {
+        setIsAdmin(false);
+      }
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (session?.user) {
+        checkAdmin(session.user.id);
+      } else {
+        setIsAdmin(false);
+      }
     });
 
     return () => subscription.unsubscribe();
   }, []);
+
+  const checkAdmin = async (userId: string) => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("is_admin")
+      .eq("user_id", userId)
+      .single();
+    if (data?.is_admin) setIsAdmin(true);
+  };
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
@@ -55,7 +77,15 @@ const Navbar = () => {
           </Button>
 
           {session ? (
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
+              {isAdmin && (
+                <Link to="/admin">
+                  <Button variant="outline" size="sm" className="gap-2 border-primary/20 text-primary hover:bg-primary/5">
+                    <ShieldAlert className="w-4 h-4" />
+                    Admin Portal
+                  </Button>
+                </Link>
+              )}
               <Link to="/dashboard?tab=messages">
                 <Button variant="outline" size="sm" className="gap-2">
                   Chat with Us

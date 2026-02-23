@@ -41,6 +41,7 @@ CREATE TABLE public.profiles (
     user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
     full_name TEXT,
     avatar_url TEXT,
+    is_admin BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
@@ -84,13 +85,14 @@ ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
 -- 5. CREATE POLICIES
 CREATE POLICY "Public read treatments" ON public.treatments FOR SELECT USING (true);
-CREATE POLICY "Users view own profile" ON public.profiles FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users view own profile" ON public.profiles FOR SELECT USING (auth.uid() = user_id OR (SELECT is_admin FROM public.profiles WHERE user_id = auth.uid()));
 CREATE POLICY "Users update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users view own appts" ON public.appointments FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users view own appts" ON public.appointments FOR SELECT USING (auth.uid() = user_id OR (SELECT is_admin FROM public.profiles WHERE user_id = auth.uid()));
+CREATE POLICY "Admin update appts" ON public.appointments FOR UPDATE USING ((SELECT is_admin FROM public.profiles WHERE user_id = auth.uid()));
 CREATE POLICY "Users add own appts" ON public.appointments FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users view own docs" ON public.medical_records FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users view own docs" ON public.medical_records FOR SELECT USING (auth.uid() = user_id OR (SELECT is_admin FROM public.profiles WHERE user_id = auth.uid()));
 CREATE POLICY "Users add own docs" ON public.medical_records FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users chat" ON public.messages FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
+CREATE POLICY "Users chat" ON public.messages FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id OR (SELECT is_admin FROM public.profiles WHERE user_id = auth.uid()));
 CREATE POLICY "Users send chat" ON public.messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
 
 -- 6. AUTOMATION LOGIC
