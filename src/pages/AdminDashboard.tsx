@@ -49,10 +49,10 @@ const AdminDashboard = () => {
         const { data: appts, error } = await supabase
             .from("appointments")
             .select(`
-        *,
-        profiles:user_id (full_name),
-        treatments:treatment_id (title)
-      `)
+                *,
+                profiles(full_name),
+                treatments(title)
+            `)
             .order("created_at", { ascending: false });
 
         if (error) {
@@ -65,7 +65,7 @@ const AdminDashboard = () => {
             .from("messages")
             .select(`
                 *,
-                profiles:sender_id (full_name)
+                profiles(full_name)
             `)
             .order("created_at", { ascending: false });
 
