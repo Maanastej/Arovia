@@ -26,6 +26,7 @@ const Dashboard = () => {
   const [appointments, setAppointments] = useState<any[]>([]);
   const [records, setRecords] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -105,7 +106,11 @@ const Dashboard = () => {
       toast({ variant: "destructive", title: "Error", description: "Failed to send message." });
     } else {
       setNewMessage("");
-      // fetchDashboardData(user.id); // Removed as per new useEffect
+      setIsTyping(true);
+      setTimeout(() => {
+        fetchDashboardData(user.id);
+        setIsTyping(false);
+      }, 2000); // Simulate agent thinking
     }
   };
 
@@ -359,8 +364,13 @@ const Dashboard = () => {
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages.length > 0 ? messages.map(msg => (
-          <div key={msg.id} className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] p-4 rounded-2xl ${msg.sender_id === user?.id ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-muted rounded-tl-none'}`}>
+          <div key={msg.id} className={`flex ${msg.sender_id === user?.id && !msg.is_agent ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[80%] p-4 rounded-2xl ${msg.sender_id === user?.id && !msg.is_agent ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-muted rounded-tl-none'}`}>
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">
+                  {msg.is_agent ? "Arovia Assistant" : "You"}
+                </span>
+              </div>
               <p className="text-sm">{msg.content}</p>
               <span className="text-[10px] opacity-70 mt-1 block">
                 {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -371,6 +381,15 @@ const Dashboard = () => {
           <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
             <MessageSquare className="w-12 h-12 mb-4" />
             <p>No messages yet. Start a conversation with our team.</p>
+          </div>
+        )}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-muted p-3 rounded-2xl rounded-tl-none flex gap-1 items-center">
+              <div className="w-1.5 h-1.5 bg-foreground/30 rounded-full animate-bounce" />
+              <div className="w-1.5 h-1.5 bg-foreground/30 rounded-full animate-bounce [animation-delay:0.2s]" />
+              <div className="w-1.5 h-1.5 bg-foreground/30 rounded-full animate-bounce [animation-delay:0.4s]" />
+            </div>
           </div>
         )}
       </div>

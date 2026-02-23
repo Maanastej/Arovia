@@ -56,6 +56,7 @@ CREATE TABLE public.messages (
     receiver_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     is_read BOOLEAN DEFAULT false,
+    is_agent BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
 
@@ -74,7 +75,33 @@ CREATE POLICY "Users add own docs" ON public.medical_records FOR INSERT WITH CHE
 CREATE POLICY "Users chat" ON public.messages FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id);
 CREATE POLICY "Users send chat" ON public.messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
 
--- 6. SEED DUMMY DATA
+-- 6. AI CHAT AGENT LOGIC
+-- This function automatically replies to any message sent by a user.
+CREATE OR REPLACE FUNCTION public.handle_agent_reply()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- Only reply if a USER sent the message (is_agent is false)
+    -- and there isn't already a reply pending (prevent loops)
+    IF NEW.is_agent = false THEN
+        INSERT INTO public.messages (sender_id, receiver_id, content, is_agent)
+        VALUES (
+            NEW.sender_id, -- Keep the context
+            NEW.sender_id, 
+            'Hello! I am your Arovia Assistant. 👋 I see you are interested in our services. How can I help you with your medical journey today?',
+            true
+        );
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Trigger to run after every message insert
+DROP TRIGGER IF EXISTS on_message_sent ON public.messages;
+CREATE TRIGGER on_message_sent
+    AFTER INSERT ON public.messages
+    FOR EACH ROW EXECUTE FUNCTION public.handle_agent_reply();
+
+-- 7. SEED DUMMY DATA
 INSERT INTO public.treatments (title, category, description, price_estimate, duration_days, image_url)
 VALUES 
 ('Full Dental Implants', 'Dental', 'Restore your smile with high-quality dental implants. Includes consultation and 3D imaging.', '$3,000 - $5,000', 5, 'https://images.unsplash.com/photo-1606811841689-23dfddce3e95?q=80&w=1000&auto=format&fit=crop'),
