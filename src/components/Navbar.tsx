@@ -137,12 +137,22 @@ const Navbar = () => {
                 </a>
               ))}
               {session ? (
-                <Link to="/dashboard" onClick={() => setOpen(false)}>
-                  <Button className="w-full mt-2 gap-2">
-                    <LayoutDashboard className="w-4 h-4" />
-                    Go to Dashboard
-                  </Button>
-                </Link>
+                <div className="flex flex-col gap-2 w-full mt-2">
+                  {isAdmin && (
+                    <Link to="/admin" onClick={() => setOpen(false)}>
+                      <Button variant="outline" className="w-full gap-2 border-primary/20 text-primary">
+                        <ShieldAlert className="w-4 h-4" />
+                        Admin Portal
+                      </Button>
+                    </Link>
+                  )}
+                  <Link to="/dashboard" onClick={() => setOpen(false)}>
+                    <Button className="w-full gap-2">
+                      <LayoutDashboard className="w-4 h-4" />
+                      Go to Dashboard
+                    </Button>
+                  </Link>
+                </div>
               ) : (
                 <a href="/auth" onClick={() => setOpen(false)}>
                   <Button className="w-full mt-2">Get Free Quote</Button>

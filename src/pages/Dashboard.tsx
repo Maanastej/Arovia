@@ -6,8 +6,9 @@ import { Button } from "@/components/ui/button";
 import {
   LogOut, User, Calendar, FileText, MessageSquare,
   Heart, MapPin, Bell, Settings, ChevronRight, Plus,
-  Upload, Send, Clock, CheckCircle2, History
+  Upload, Send, Clock, CheckCircle2, History, ShieldAlert
 } from "lucide-react";
+import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -425,8 +426,18 @@ const Dashboard = () => {
               <div className="text-sm font-medium text-foreground">
                 {profile?.full_name || user?.email}
               </div>
-              <div className="text-xs text-muted-foreground">Patient Account</div>
+              <div className="text-xs text-muted-foreground">
+                {profile?.is_admin ? "Admin Account" : "Patient Account"}
+              </div>
             </div>
+            {profile?.is_admin && (
+              <Link to="/admin">
+                <Button variant="outline" size="sm" className="gap-2 border-primary/20 text-primary hover:bg-primary/5 hidden sm:flex">
+                  <ShieldAlert className="w-4 h-4" />
+                  Admin Portal
+                </Button>
+              </Link>
+            )}
             <Button variant="ghost" size="icon" onClick={handleSignOut} className="hover:text-destructive">
               <LogOut className="w-4 h-4" />
             </Button>

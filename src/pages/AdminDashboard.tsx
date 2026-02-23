@@ -13,6 +13,7 @@ import Navbar from "@/components/Navbar";
 const AdminDashboard = () => {
     const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
     const [appointments, setAppointments] = useState<any[]>([]);
+    const [messages, setMessages] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const { toast } = useToast();
 
@@ -54,7 +55,25 @@ const AdminDashboard = () => {
       `)
             .order("created_at", { ascending: false });
 
+        if (error) {
+            console.error("Error fetching admin data:", error);
+            toast({ variant: "destructive", title: "Fetch Failed", description: error.message });
+        }
         if (appts) setAppointments(appts);
+
+        const { data: msgs, error: msgError } = await supabase
+            .from("messages")
+            .select(`
+                *,
+                profiles:sender_id (full_name)
+            `)
+            .order("created_at", { ascending: false });
+
+        if (msgError) {
+            console.error("Error fetching messages:", msgError);
+        }
+        if (msgs) setMessages(msgs);
+
         setLoading(false);
     };
 
@@ -164,12 +183,44 @@ const AdminDashboard = () => {
                             <CardHeader>
                                 <CardTitle>Global Chat Logs</CardTitle>
                             </CardHeader>
-                            <CardContent className="h-[400px] flex items-center justify-center text-muted-foreground">
-                                <div className="text-center">
-                                    <MessageSquare className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                                    <p>Chat moderation interface is being loaded... (100% active)</p>
-                                    <p className="text-sm">You can currently view chats via the Supabase Dashboard.</p>
-                                </div>
+                            <CardContent>
+                                <Table>
+                                    <TableHeader>
+                                        <TableRow>
+                                            <TableHead>Time</TableHead>
+                                            <TableHead>Patient</TableHead>
+                                            <TableHead>Message</TableHead>
+                                            <TableHead>Type</TableHead>
+                                        </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                        {messages.map((msg) => (
+                                            <TableRow key={msg.id}>
+                                                <TableCell className="text-xs text-muted-foreground">
+                                                    {new Date(msg.created_at).toLocaleString()}
+                                                </TableCell>
+                                                <TableCell className="font-medium">
+                                                    {msg.profiles?.full_name || "Unknown"}
+                                                </TableCell>
+                                                <TableCell className="max-w-md truncate">
+                                                    {msg.content}
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant={msg.is_agent ? "outline" : "secondary"}>
+                                                        {msg.is_agent ? "AI Agent" : "Patient"}
+                                                    </Badge>
+                                                </TableCell>
+                                            </TableRow>
+                                        ))}
+                                        {messages.length === 0 && (
+                                            <TableRow>
+                                                <TableCell colSpan={4} className="text-center py-10 text-muted-foreground">
+                                                    No messages found.
+                                                </TableCell>
+                                            </TableRow>
+                                        )}
+                                    </TableBody>
+                                </Table>
                             </CardContent>
                         </Card>
                     </TabsContent>
