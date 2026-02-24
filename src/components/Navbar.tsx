@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Phone, User, LayoutDashboard, ShieldAlert } from "lucide-react";
+import { Menu, X, Mail, User, LayoutDashboard, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { Link, useNavigate } from "react-router-dom";
@@ -71,10 +71,12 @@ const Navbar = () => {
         </div>
 
         <div className="hidden md:flex items-center gap-3">
-          <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
-            <Phone className="w-4 h-4" />
-            <span>1-800-AROVIA</span>
-          </Button>
+          <a href="mailto:maanastej.birudukota_2027@woxsen.edu.in">
+            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground">
+              <Mail className="w-4 h-4" />
+              <span>Email Us</span>
+            </Button>
+          </a>
 
           {session ? (
             <div className="flex items-center gap-3">

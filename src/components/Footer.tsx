@@ -34,7 +34,7 @@ const Footer = () => (
             <li><a href="#" className="hover:text-primary-foreground transition-colors">FAQs</a></li>
             <li><a href="#" className="hover:text-primary-foreground transition-colors">Privacy Policy</a></li>
             <li><a href="#" className="hover:text-primary-foreground transition-colors">Terms of Service</a></li>
-            <li><a href="#" className="hover:text-primary-foreground transition-colors">Emergency: 1-800-AROVIA</a></li>
+            <li><a href="mailto:maanastej.birudukota_2027@woxsen.edu.in" className="hover:text-primary-foreground transition-colors">Email Support</a></li>
           </ul>
         </div>
       </div>

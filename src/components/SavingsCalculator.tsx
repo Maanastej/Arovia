@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { DollarSign, TrendingDown, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const procedures = [
   { name: "Heart Bypass Surgery", usPrice: 123000, indiaPrice: 12000 },
@@ -16,6 +17,7 @@ const procedures = [
 
 const SavingsCalculator = () => {
   const [selected, setSelected] = useState(0);
+  const navigate = useNavigate();
   const proc = procedures[selected];
   const savings = proc.usPrice - proc.indiaPrice;
   const pct = Math.round((savings / proc.usPrice) * 100);
@@ -45,11 +47,10 @@ const SavingsCalculator = () => {
               <button
                 key={p.name}
                 onClick={() => setSelected(i)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                  selected === i
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selected === i
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                }`}
+                  }`}
               >
                 {p.name}
               </button>
@@ -98,7 +99,7 @@ const SavingsCalculator = () => {
           </motion.div>
 
           <div className="text-center mt-8">
-            <Button size="lg" className="gap-2">
+            <Button size="lg" className="gap-2" onClick={() => navigate('/auth')}>
               Get Your Personalized Quote <ArrowRight className="w-4 h-4" />
             </Button>
           </div>

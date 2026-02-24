@@ -27,6 +27,7 @@ const Dashboard = () => {
   const [records, setRecords] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [allTreatments, setAllTreatments] = useState<any[]>([]);
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -86,7 +87,43 @@ const Dashboard = () => {
       .order("created_at", { ascending: true });
     setMessages(msgs || []);
 
+    // Fetch Treatments for AI Knowledge
+    const { data: treats } = await supabase.from("treatments").select("*");
+    setAllTreatments(treats || []);
+
     setLoading(false);
+  };
+
+  const getAIResponse = (input: string) => {
+    const text = input.toLowerCase();
+
+    // 1. Treatment related queries
+    const foundTreatment = allTreatments.find(t =>
+      text.includes(t.title.toLowerCase()) ||
+      t.category.toLowerCase().split(' ').some((word: string) => text.includes(word.toLowerCase()))
+    );
+
+    if (foundTreatment) {
+      return `Our ${foundTreatment.title} package starts at ${foundTreatment.price_estimate}. The typical stay in India for this procedure is ${foundTreatment.duration_days} days. Would you like me to help you schedule a consultation for this?`;
+    }
+
+    // 2. Cost/Savings queries
+    if (text.includes("cost") || text.includes("price") || text.includes("save") || text.includes("cheap")) {
+      return "Medical procedures with Arovia in India typically cost 60-90% less than in the US. For example, a Hip Replacement that costs $40k in the US is only about $7k with us. Which specific treatment are you interested in?";
+    }
+
+    // 3. Process/How it works
+    if (text.includes("how") || text.includes("process") || text.includes("work") || text.includes("steps")) {
+      return "The process is simple: 1. Explore treatments. 2. Book a free consultation. 3. Upload your medical records. 4. We handle all travel and hospital arrangements. You just focus on recovery! Have you uploaded your medical records yet?";
+    }
+
+    // 4. Greeting/Identity
+    if (text.includes("hello") || text.includes("hi") || text.includes("who are you")) {
+      return `Hello ${profile?.full_name?.split(' ')[0] || 'there'}! I am Arovia's AI Medical Concierge. I can help you find treatments, estimate costs, or explain our process. How can I help you today?`;
+    }
+
+    // Default
+    return "That is a great question. As your Medical Concierge, I can tell you that we partner with JCI-accredited hospitals to ensure world-class care. Could you tell me more about what medical needs you have so I can give you more specific information?";
   };
 
   const handleSignOut = async () => {
@@ -97,9 +134,11 @@ const Dashboard = () => {
   const handleSendMessage = async () => {
     if (!newMessage.trim() || !user) return;
 
+    const userMessage = newMessage.trim();
     const { error } = await supabase.from("messages").insert({
       sender_id: user.id,
-      content: newMessage.trim(),
+      content: userMessage,
+      is_agent: false
     });
 
     if (error) {
@@ -107,10 +146,21 @@ const Dashboard = () => {
     } else {
       setNewMessage("");
       setIsTyping(true);
-      setTimeout(() => {
+
+      // AI Autonomously answers
+      setTimeout(async () => {
+        const aiReply = getAIResponse(userMessage);
+
+        await supabase.from("messages").insert({
+          sender_id: user.id, // Using user.id as sender but is_agent=true (per schema logic)
+          receiver_id: user.id,
+          content: aiReply,
+          is_agent: true
+        });
+
         fetchDashboardData(user.id);
         setIsTyping(false);
-      }, 2000); // Simulate agent thinking
+      }, 1500);
     }
   };
 
