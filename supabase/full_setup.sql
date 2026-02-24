@@ -83,17 +83,29 @@ ALTER TABLE public.appointments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.medical_records ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
 
--- 5. CREATE POLICIES
-CREATE POLICY "Public read treatments" ON public.treatments FOR SELECT USING (true);
-CREATE POLICY "Users view own profile" ON public.profiles FOR SELECT USING (auth.uid() = user_id OR (SELECT is_admin FROM public.profiles WHERE user_id = auth.uid()));
-CREATE POLICY "Users update own profile" ON public.profiles FOR UPDATE USING (auth.uid() = user_id);
-CREATE POLICY "Users view own appts" ON public.appointments FOR SELECT USING (auth.uid() = user_id OR (SELECT is_admin FROM public.profiles WHERE user_id = auth.uid()));
-CREATE POLICY "Admin update appts" ON public.appointments FOR UPDATE USING ((SELECT is_admin FROM public.profiles WHERE user_id = auth.uid()));
-CREATE POLICY "Users add own appts" ON public.appointments FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users view own docs" ON public.medical_records FOR SELECT USING (auth.uid() = user_id OR (SELECT is_admin FROM public.profiles WHERE user_id = auth.uid()));
-CREATE POLICY "Users add own docs" ON public.medical_records FOR INSERT WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "Users chat" ON public.messages FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id OR (SELECT is_admin FROM public.profiles WHERE user_id = auth.uid()));
-CREATE POLICY "Users send chat" ON public.messages FOR INSERT WITH CHECK (auth.uid() = sender_id);
+-- 5. ADMIN HELPER FUNCTION
+-- Using SECURITY DEFINER means this function runs as the DB owner, bypassing RLS.
+-- This avoids the circular dependency where checking is_admin on profiles
+-- requires reading profiles, which itself checks is_admin.
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN AS $$
+  SELECT COALESCE(
+    (SELECT is_admin FROM public.profiles WHERE user_id = auth.uid() LIMIT 1),
+    false
+  );
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+-- 6. CREATE POLICIES
+CREATE POLICY "Public read treatments"  ON public.treatments      FOR SELECT USING (true);
+CREATE POLICY "Users view own profile"  ON public.profiles         FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+CREATE POLICY "Users update own profile" ON public.profiles        FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users view own appts"   ON public.appointments     FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+CREATE POLICY "Admin update appts"     ON public.appointments     FOR UPDATE USING (public.is_admin());
+CREATE POLICY "Users add own appts"    ON public.appointments     FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users view own docs"    ON public.medical_records  FOR SELECT USING (auth.uid() = user_id OR public.is_admin());
+CREATE POLICY "Users add own docs"     ON public.medical_records  FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users chat"             ON public.messages         FOR SELECT USING (auth.uid() = sender_id OR auth.uid() = receiver_id OR public.is_admin());
+CREATE POLICY "Users send chat"        ON public.messages         FOR INSERT WITH CHECK (auth.uid() = sender_id);
 
 -- 6. AUTOMATION LOGIC
 
