@@ -138,6 +138,7 @@ const Dashboard = () => {
   };
 
   const handleSendMessage = async () => {
+    console.log("handleSendMessage triggered");
     if (!newMessage.trim() || !user) return;
 
     const userMessage = newMessage.trim();
