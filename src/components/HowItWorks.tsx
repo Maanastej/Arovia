@@ -10,7 +10,7 @@ const steps = [
   {
     icon: Video,
     title: "Virtual Consultation",
-    description: "Connect with top Indian specialists via video call. Get a personalized treatment plan and transparent cost breakdown.",
+    description: "Connect with top Indian specialists via secure messaging. Get a personalized treatment plan and transparent cost breakdown.",
   },
   {
     icon: Plane,

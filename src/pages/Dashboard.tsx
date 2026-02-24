@@ -123,7 +123,13 @@ const Dashboard = () => {
     }
 
     // Default
-    return "That is a great question. As your Medical Concierge, I can tell you that we partner with JCI-accredited hospitals to ensure world-class care. Could you tell me more about what medical needs you have so I can give you more specific information?";
+    const defaults = [
+      "That is a great question. As your Medical Concierge, I can tell you that we partner with JCI-accredited hospitals to ensure world-class care. Could you tell me more about what medical needs you have so I can give you more specific information?",
+      "I'd love to help with that. We specialize in coordinating high-end medical care in India. What specific procedure or treatment area are you exploring right now?",
+      "Our team of medical coordinators is available to discuss your specific case. In the meantime, I can provide pricing for treatments like Dental, Cardiac, or Orthopedic surgery. Which interests you?",
+      "Providing world-class healthcare at affordable prices is our mission. Are you looking to travel soon, or are you just beginning your research into medical tourism?"
+    ];
+    return defaults[Math.floor(Math.random() * defaults.length)];
   };
 
   const handleSignOut = async () => {
@@ -161,6 +167,33 @@ const Dashboard = () => {
         fetchDashboardData(user.id);
         setIsTyping(false);
       }, 1500);
+    }
+  };
+
+  const handleNewChat = async () => {
+    if (!user) return;
+
+    if (confirm("Are you sure you want to start a new chat? This will clear your message history.")) {
+      const { error } = await supabase
+        .from("messages")
+        .delete()
+        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
+
+      if (error) {
+        toast({ variant: "destructive", title: "Error", description: "Failed to clear chat history." });
+      } else {
+        toast({ title: "Success", description: "Chat history cleared. Starting new conversation." });
+
+        // Add a welcome message from the AI after clearing
+        await supabase.from("messages").insert({
+          sender_id: user.id,
+          receiver_id: user.id,
+          content: "Hello again! I've cleared our previous conversation. How can I help you today?",
+          is_agent: true
+        });
+
+        fetchDashboardData(user.id);
+      }
     }
   };
 
@@ -406,28 +439,35 @@ const Dashboard = () => {
 
   const renderMessages = () => (
     <div className="h-[600px] border border-border rounded-2xl flex flex-col bg-card overflow-hidden">
-      <div className="p-4 border-b border-border bg-muted/50">
+      <div className="p-4 border-b border-border bg-muted/50 flex items-center justify-between">
         <h3 className="font-semibold flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          Medical Concierge Chat
+          Arovia Medical Assistant
         </h3>
+        <Button variant="ghost" size="sm" onClick={handleNewChat} className="text-xs h-8 gap-1.5 opacity-70 hover:opacity-100">
+          <History className="w-3.5 h-3.5" /> Start New Chat
+        </Button>
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {messages.length > 0 ? messages.map(msg => (
-          <div key={msg.id} className={`flex ${msg.sender_id === user?.id && !msg.is_agent ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] p-4 rounded-2xl ${msg.sender_id === user?.id && !msg.is_agent ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-muted rounded-tl-none'}`}>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">
-                  {msg.is_agent ? "Arovia Assistant" : "You"}
-                </span>
+        {messages
+          .filter(msg => !msg.content.includes("Our team is reviewing your request") && !msg.content.includes("I have received your message"))
+          .length > 0 ? messages
+            .filter(msg => !msg.content.includes("Our team is reviewing your request") && !msg.content.includes("I have received your message"))
+            .map(msg => (
+              <div key={msg.id} className={`flex ${msg.sender_id === user?.id && !msg.is_agent ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[80%] p-4 rounded-2xl ${msg.sender_id === user?.id && !msg.is_agent ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-muted rounded-tl-none'}`}>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">
+                      {msg.is_agent ? "Arovia Assistant" : "You"}
+                    </span>
+                  </div>
+                  <p className="text-sm">{msg.content}</p>
+                  <span className="text-[10px] opacity-70 mt-1 block">
+                    {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
               </div>
-              <p className="text-sm">{msg.content}</p>
-              <span className="text-[10px] opacity-70 mt-1 block">
-                {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-              </span>
-            </div>
-          </div>
-        )) : (
+            )) : (
           <div className="h-full flex flex-col items-center justify-center text-center opacity-50">
             <MessageSquare className="w-12 h-12 mb-4" />
             <p>No messages yet. Start a conversation with our team.</p>

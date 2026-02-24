@@ -88,11 +88,12 @@ const Navbar = () => {
                   </Button>
                 </Link>
               )}
-              <Link to="/dashboard?tab=messages">
+              <a href="mailto:maanastej.birudukota_2027@woxsen.edu.in">
                 <Button variant="outline" size="sm" className="gap-2">
-                  Chat with Us
+                  <Mail className="w-4 h-4" />
+                  Email Support
                 </Button>
-              </Link>
+              </a>
               <Link to="/dashboard">
                 <Button size="sm" className="gap-2">
                   <LayoutDashboard className="w-4 h-4" />
@@ -138,6 +139,10 @@ const Navbar = () => {
                   {link.label}
                 </a>
               ))}
+              <a href="mailto:maanastej.birudukota_2027@woxsen.edu.in" className="flex items-center gap-2 text-muted-foreground font-medium py-2">
+                <Mail className="w-5 h-5" />
+                <span>Email Us</span>
+              </a>
               {session ? (
                 <div className="flex flex-col gap-2 w-full mt-2">
                   {isAdmin && (
