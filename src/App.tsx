@@ -19,9 +19,6 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="bg-red-600 text-white text-center py-1 text-xs font-bold fixed top-0 w-full z-[9999]">
-          VERSION: FEB-24-EMAIL-UPDATED
-        </div>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
