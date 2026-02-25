@@ -28,6 +28,8 @@ const Dashboard = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [allTreatments, setAllTreatments] = useState<any[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [sessionStartTime, setSessionStartTime] = useState(new Date().toISOString());
 
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -60,8 +62,8 @@ const Dashboard = () => {
     setProfile(data);
   };
 
-  const fetchDashboardData = async (userId: string) => {
-    setLoading(true);
+  const fetchDashboardData = async (userId: string, silent = false) => {
+    if (!silent) setLoading(true);
 
     // Fetch Appointments
     const { data: appts } = await supabase
@@ -91,10 +93,10 @@ const Dashboard = () => {
     const { data: treats } = await supabase.from("treatments").select("*");
     setAllTreatments(treats || []);
 
-    setLoading(false);
+    if (!silent) setLoading(false);
   };
 
-  const getAIResponse = (input: string) => {
+  const getFallbackAIResponse = (input: string) => {
     const text = input.toLowerCase();
 
     // 1. Treatment related queries
@@ -132,6 +134,51 @@ const Dashboard = () => {
     return defaults[Math.floor(Math.random() * defaults.length)];
   };
 
+  const getAIResponse = async (input: string) => {
+    const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+    if (!apiKey || apiKey === "your-gemini-api-key") {
+      return getFallbackAIResponse(input);
+    }
+
+    // Prepare conversation history for memory (last 10 messages)
+    const history = messages
+      .filter(msg => msg.id) // Ensure valid messages
+      .slice(-10)
+      .map(msg => ({
+        role: msg.is_agent ? "model" : "user",
+        parts: [{ text: msg.content }]
+      }));
+
+    try {
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            ...history,
+            {
+              role: "user",
+              parts: [{
+                text: `Context: You are Arovia's AI Medical Concierge. Treatments available: ${allTreatments.map(t => `${t.title} (${t.price_estimate})`).join(", ")}. 
+                Help the patient with their specific question: ${input}`
+              }]
+            }
+          ],
+          systemInstruction: {
+            parts: [{
+              text: "You are Arovia's AI Medical Concierge. Your goal is to help patients find treatments in India, estimate costs, and explain the medical tourism process. Be professional, empathetic, and knowledgeable. Only discuss medical travel to India and Arovia's services."
+            }]
+          }
+        })
+      });
+      const data = await response.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || getFallbackAIResponse(input);
+    } catch (error) {
+      console.error("Gemini Error:", error);
+      return getFallbackAIResponse(input);
+    }
+  };
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     navigate("/");
@@ -156,7 +203,7 @@ const Dashboard = () => {
 
       // AI Autonomously answers
       setTimeout(async () => {
-        const aiReply = getAIResponse(userMessage);
+        const aiReply = await getAIResponse(userMessage);
 
         await supabase.from("messages").insert({
           sender_id: user.id, // Using user.id as sender but is_agent=true (per schema logic)
@@ -165,7 +212,7 @@ const Dashboard = () => {
           is_agent: true
         });
 
-        fetchDashboardData(user.id);
+        fetchDashboardData(user.id, true); // Silent refresh
         setIsTyping(false);
       }, 1500);
     }
@@ -174,7 +221,7 @@ const Dashboard = () => {
   const handleNewChat = async () => {
     if (!user) return;
 
-    if (confirm("Are you sure you want to start a new chat? This will clear your message history.")) {
+    if (confirm("Are you sure you want to delete your chat history and start fresh?")) {
       const { error } = await supabase
         .from("messages")
         .delete()
@@ -183,17 +230,9 @@ const Dashboard = () => {
       if (error) {
         toast({ variant: "destructive", title: "Error", description: "Failed to clear chat history." });
       } else {
-        toast({ title: "Success", description: "Chat history cleared. Starting new conversation." });
-
-        // Add a welcome message from the AI after clearing
-        await supabase.from("messages").insert({
-          sender_id: user.id,
-          receiver_id: user.id,
-          content: "Hello again! I've cleared our previous conversation. How can I help you today?",
-          is_agent: true
-        });
-
-        fetchDashboardData(user.id);
+        toast({ title: "Chat Cleared", description: "Your conversation history has been permanently removed." });
+        setSessionStartTime(new Date().toISOString());
+        fetchDashboardData(user.id, true);
       }
     }
   };
@@ -205,7 +244,7 @@ const Dashboard = () => {
       // Auto-refresh messages every 10 seconds to simulate real-time
       const msgInterval = setInterval(() => {
         if (activeTab === 'messages') {
-          fetchDashboardData(user.id);
+          fetchDashboardData(user.id, true); // Silent refresh
         }
       }, 10000);
 
@@ -443,17 +482,44 @@ const Dashboard = () => {
       <div className="p-4 border-b border-border bg-muted/50 flex items-center justify-between">
         <h3 className="font-semibold flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-          Arovia Medical Assistant
+          Arovia Medical Concierge
         </h3>
-        <Button variant="ghost" size="sm" onClick={handleNewChat} className="text-xs h-8 gap-1.5 opacity-70 hover:opacity-100">
-          <History className="w-3.5 h-3.5" /> Start New Chat
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowHistory(!showHistory)}
+            className={`text-xs h-8 gap-1.5 ${showHistory ? 'text-primary' : 'opacity-70'}`}
+          >
+            <History className="w-3.5 h-3.5" /> {showHistory ? "Hide History" : "Show History"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNewChat}
+            className="text-xs h-8 gap-1.5 border-primary/20 hover:bg-primary/5"
+          >
+            <Plus className="w-3.5 h-3.5" /> New Chat
+          </Button>
+        </div>
       </div>
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
         {messages
-          .filter(msg => !msg.content.includes("Our team is reviewing your request") && !msg.content.includes("I have received your message"))
+          .filter(msg => {
+            const isNoisy = msg.content.includes("Our team is reviewing your request") || msg.content.includes("I have received your message");
+            if (isNoisy) return false;
+
+            if (showHistory) return true;
+            return new Date(msg.created_at) >= new Date(sessionStartTime);
+          })
           .length > 0 ? messages
-            .filter(msg => !msg.content.includes("Our team is reviewing your request") && !msg.content.includes("I have received your message"))
+            .filter(msg => {
+              const isNoisy = msg.content.includes("Our team is reviewing your request") || msg.content.includes("I have received your message");
+              if (isNoisy) return false;
+
+              if (showHistory) return true;
+              return new Date(msg.created_at) >= new Date(sessionStartTime);
+            })
             .map(msg => (
               <div key={msg.id} className={`flex ${msg.sender_id === user?.id && !msg.is_agent ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-[80%] p-4 rounded-2xl ${msg.sender_id === user?.id && !msg.is_agent ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-muted rounded-tl-none'}`}>

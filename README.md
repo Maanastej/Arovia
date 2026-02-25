@@ -2,7 +2,7 @@
 
 > A world-class medical tourism platform connecting patients with top-tier accredited hospitals in India — built with React, Supabase, and deployed on Vercel.
 
-🌐 **Live Site**: [arovia-care.vercel.app](https://arovia-care.vercel.app)
+🌐 **Live Site**: [arovia-care-connect.vercel.app](https://arovia-care-connect.vercel.app)
 
 ---
 
@@ -60,6 +60,7 @@ Fill in your values in `.env`:
 VITE_SUPABASE_URL="https://your-project-id.supabase.co"
 VITE_SUPABASE_PUBLISHABLE_KEY="your-supabase-anon-key"
 VITE_SUPABASE_PROJECT_ID="your-project-id"
+VITE_GEMINI_API_KEY="your-gemini-api-key"
 ```
 > Get these from **Supabase Dashboard → Settings → API**
 
@@ -98,6 +99,7 @@ Row Level Security (RLS) is enabled on all tables. Admin access uses a `SECURITY
 3. Add environment variables in **Project Settings → Environment Variables**:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_PUBLISHABLE_KEY`
+   - `VITE_GEMINI_API_KEY`
 4. Deploy — Vercel auto-deploys on every push to `main`
 5. Add your Vercel domain to **Supabase → Authentication → URL Configuration**
 
@@ -132,5 +134,7 @@ In **Supabase Dashboard → Table Editor → profiles**, find the user's row and
 ---
 
 ## 📄 License
+
+<!-- Deployment Nudge: 2026-02-25T08:15:00Z -->
 
 MIT © Arovia Care Connect
